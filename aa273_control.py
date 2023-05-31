@@ -26,14 +26,14 @@ def state_space(T, n, m):
 
     return (A, B)
 
-def dynamics(N, mean_motion, mass):
+def dynamics(dt, N, mean_motion, mass):
     """Returns A and B matrices for each time step"""
     A = []
     B = []
 
     for k in range(N):
         # print("hi")
-        Anew, Bnew = state_space(k, mean_motion, mass)
+        Anew, Bnew = state_space(k*dt, mean_motion, mass)
         A.append(Anew)
         B.append(Bnew)
         
@@ -59,7 +59,7 @@ def straight_line_traj(s_start, s_goal, T):
     return s
 
 # %%
-def do_MPC(chaser_n, chaser_m, s_current, s_goal, N, Q, R, P, max_iters, eps):
+def do_MPC(dt, chaser_n, chaser_m, s_current, s_goal, N, Q, R, P, max_iters, eps):
     """Performs MPC for one time step and calculates the optimal control input at that time
     Returns:
         s_mpc: state trajectory for time horizon N
@@ -80,7 +80,7 @@ def do_MPC(chaser_n, chaser_m, s_current, s_goal, N, Q, R, P, max_iters, eps):
     m = R.shape[0]
 
     #TODO: SEE WHAT 273 CODE USES FOR A AND B STATE SPACE MATRICES
-    A, B = dynamics(N, chaser_n, chaser_m)
+    A, B = dynamics(dt, N, chaser_n, chaser_m)
 
     # Generate a straight line trajectory from s_start to s_goal for MPC Horizon length
     # This is currently not working B)!

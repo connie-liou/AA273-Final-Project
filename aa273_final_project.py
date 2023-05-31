@@ -264,9 +264,12 @@ def compute_Cdot(pos_rcv, pos_gps, vel_rcv, vel_gps):
 sc1_elements = [6918.14, 0.00001, 97.59760, 0.000000, -109.33800,   0.00827]
 sc1 = spacecraft.Spacecraft( elements = sc1_elements )
 
+target_sc_elements = [6918.14, 0.00001, 97.59760, 0.000000, -109.33800, 0.0]
+sc_target = spacecraft.Spacecraft( elements = target_sc_elements )
+
 # Setup the simulation parameters
 dt = 10;
-duration = 6000;
+duration = 400;
 samples = math.floor(duration / dt);
 
 # Setup the initial state and initial (prior) distribution
@@ -283,6 +286,7 @@ Rdot = 0.000005; # 5mm/s
 
 # Matrices to record measured and true state history
 xt_history = np.zeros((6, samples)); # Truth
+target_history = np.zeros((6, samples)); # Truth of target
 x_history = np.zeros((6, samples));  # Filter mean
 P_history = np.zeros((6, samples));  # Filter variance
 k = 1;                               # Counter
@@ -303,14 +307,17 @@ for k in range(samples):
 
     # Record states
     x_history[:,k] = x
+    target_history[:, k] = [sc_target.px, sc_target.py, sc_target.pz, sc_target.vx, sc_target.vy, sc_target.vz]
     P_history[:,k] = [P[0,0], P[1,1], P[2,2], P[3,3], P[4,4], P[5,5]]
     xt_history[:,k] = [sc1.px, sc1.py, sc1.pz, sc1.vx, sc1.vy, sc1.vz]
 
     # Propagate the true states of all spacecraft using RK4 propagator
     sc1.propagate_orbit(dt)
+    sc_target.propagate_orbit(dt)
     for gps in gps_constellation:
         gps.propagate_orbit(dt)
-        
+    
+    print(sc1.px)
     # Propagate the filter with the time update here.
     A = compute_A( dt, norm(x[0:3]) )
     x = A @ x # Add the linearized control mapping here?
@@ -367,40 +374,53 @@ plt.close('all')
 x_history  = x_history * 1000
 xt_history = xt_history * 1000
 P_history = P_history * 1000**2
+target_history = target_history * 1000
 
-# Position ECI
+# Trajectory
+plt.figure()
+plt.title('Trajectory')
+plt.plot( xt_history[0,:], xt_history[1,:],'o' ,'r')
+# plt.plot( x_history[0,:], x_history[1,:],'-*' ,'r')
+# plt.figure()
+plt.plot(target_history[0,:], target_history[1,:],'-*' ,'b')
+plt.xlabel('X [km]')
 
-timeAxis = np.linspace( 0, duration, samples)
-stdev = np.sqrt(P_history)
+#show plot
+plt.show()
 
-fig123, (ax1, ax2, ax3) = plt.subplots(3)
-ax1.plot( timeAxis, xt_history[0,:] - x_history[0,:])
-ax1.fill_between( timeAxis, stdev[0,:], -stdev[0,:], alpha=0.2 )
-ax1.set_ylim(-20*1000*R, 20*1000*R)
-ax1.grid()
-ax2.plot( timeAxis, xt_history[1,:] - x_history[1,:])
-ax2.fill_between( timeAxis, stdev[1,:], -stdev[1,:], alpha=0.2 )
-ax2.set_ylim(-20*1000*R, 20*1000*R)
-ax2.grid()
-ax3.plot( timeAxis, xt_history[2,:] - x_history[2,:])
-ax3.fill_between( timeAxis, stdev[2,:], -stdev[2,:], alpha=0.2 )
-ax3.set_ylim(-20*1000*R, 20*1000*R)
-ax3.set_xlabel('Time [seconds]')
-ax3.grid()
+# # Position ECI
 
-# Velocity ECI
+# timeAxis = np.linspace( 0, duration, samples)
+# stdev = np.sqrt(P_history)
 
-fig456, (ax4, ax5, ax6) = plt.subplots(3)
-ax4.plot( timeAxis, xt_history[3,:] - x_history[3,:])
-ax4.fill_between( timeAxis, stdev[3,:], -stdev[3,:], alpha=0.2 )
-ax4.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
-ax4.grid()
-ax5.plot( timeAxis, xt_history[4,:] - x_history[4,:])
-ax5.fill_between( timeAxis, stdev[4,:], -stdev[4,:], alpha=0.2 )
-ax5.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
-ax5.grid()
-ax6.plot( timeAxis, xt_history[5,:] - x_history[5,:])
-ax6.fill_between( timeAxis, stdev[5,:], -stdev[5,:], alpha=0.2 )
-ax6.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
-ax6.set_xlabel('Time [seconds]')
-ax6.grid()
+# fig123, (ax1, ax2, ax3) = plt.subplots(3)
+# ax1.plot( timeAxis, xt_history[0,:] - x_history[0,:])
+# ax1.fill_between( timeAxis, stdev[0,:], -stdev[0,:], alpha=0.2 )
+# ax1.set_ylim(-20*1000*R, 20*1000*R)
+# ax1.grid()
+# ax2.plot( timeAxis, xt_history[1,:] - x_history[1,:])
+# ax2.fill_between( timeAxis, stdev[1,:], -stdev[1,:], alpha=0.2 )
+# ax2.set_ylim(-20*1000*R, 20*1000*R)
+# ax2.grid()
+# ax3.plot( timeAxis, xt_history[2,:] - x_history[2,:])
+# ax3.fill_between( timeAxis, stdev[2,:], -stdev[2,:], alpha=0.2 )
+# ax3.set_ylim(-20*1000*R, 20*1000*R)
+# ax3.set_xlabel('Time [seconds]')
+# ax3.grid()
+
+# # Velocity ECI
+
+# fig456, (ax4, ax5, ax6) = plt.subplots(3)
+# ax4.plot( timeAxis, xt_history[3,:] - x_history[3,:])
+# ax4.fill_between( timeAxis, stdev[3,:], -stdev[3,:], alpha=0.2 )
+# ax4.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
+# ax4.grid()
+# ax5.plot( timeAxis, xt_history[4,:] - x_history[4,:])
+# ax5.fill_between( timeAxis, stdev[4,:], -stdev[4,:], alpha=0.2 )
+# ax5.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
+# ax5.grid()
+# ax6.plot( timeAxis, xt_history[5,:] - x_history[5,:])
+# ax6.fill_between( timeAxis, stdev[5,:], -stdev[5,:], alpha=0.2 )
+# ax6.set_ylim(-20*1000*Rdot, 20*1000*Rdot)
+# ax6.set_xlabel('Time [seconds]')
+# ax6.grid()
