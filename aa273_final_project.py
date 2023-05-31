@@ -264,7 +264,7 @@ def compute_Cdot(pos_rcv, pos_gps, vel_rcv, vel_gps):
 sc1_elements = [6918.14, 0.00001, 97.59760, 0.000000, -109.33800,   0.00827]
 sc1 = spacecraft.Spacecraft( elements = sc1_elements )
 
-target_sc_elements = [6918.14, 0.00001, 97.59760, 0.000000, -109.33800, 0.0]
+target_sc_elements = [6918.14, 0.00001, 97.59760, 0.000000, -109.33800, 0.1]
 sc_target = spacecraft.Spacecraft( elements = target_sc_elements )
 
 # Setup the simulation parameters
